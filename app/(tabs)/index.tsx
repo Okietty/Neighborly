@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useRouter } from 'expo-router';
 
 interface Tool {
   id: number;
@@ -65,42 +66,57 @@ const tools: Tool[] = [
     description: 'Gas-powered pressure washer. 3000 PSI. Includes multiple nozzles. Great for decks, driveways, and siding.',
     available: false
   },
-  {
-    id: 5,
-    name: 'Circular Saw',
-    icon: '⚙️',
-    price: 10,
-    owner: 'Robert K.',
-    distance: 0.6,
-    rating: 4,
-    reviews: 19,
-    description: 'Makita 7.25" circular saw. Sharp blade, powerful motor. Ideal for cutting lumber, plywood, or framing.',
-    available: true
-  },
-  {
-    id: 6,
-    name: 'Leaf Blower',
-    icon: '🍂',
-    price: 8,
-    owner: 'Amanda W.',
-    distance: 0.3,
-    rating: 5,
-    reviews: 35,
-    description: 'Gas-powered leaf blower. Strong airflow, easy to start. Perfect for clearing leaves, grass clippings, or debris.',
-    available: true
-  }
 ];
 
 export default function HomeScreen() {
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const router = useRouter();
+
+  const handleJoinWaitlist = () => {
+    Alert.alert(
+      '🎉 Join the Beta!',
+      'Get early access to Neighborly in Austin, Denver, or Portland. Would you like to join our waitlist?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Join Waitlist', 
+          onPress: () => Alert.alert('Success! ✓', 'Thanks for your interest! We\'ll reach out soon with beta access.') 
+        }
+      ]
+    );
+  };
+
+  const handleRequestRental = (tool: Tool) => {
+    Alert.alert(
+      `Request ${tool.name}?`,
+      `This will send a rental request to ${tool.owner} for $${tool.price}/day.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Send Request',
+          onPress: () => {
+            setSelectedTool(null);
+            Alert.alert('Request Sent! ✓', `${tool.owner} will respond within 24 hours. Check your messages for updates.`);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleBrowseTools = () => {
+    router.push('/explore');
+  };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <ThemedView style={styles.header}>
-        <Text style={styles.logo}>🏠 Neighborly</Text>
-        <TouchableOpacity style={styles.joinButton}>
-          <Text style={styles.joinButtonText}>Join Waitlist</Text>
+        <View>
+          <Text style={styles.logo}>🏠 Neighborly</Text>
+          <Text style={styles.tagline}>Share tools, build community</Text>
+        </View>
+        <TouchableOpacity style={styles.joinButton} onPress={handleJoinWaitlist}>
+          <Text style={styles.joinButtonText}>Join Beta</Text>
         </TouchableOpacity>
       </ThemedView>
 
@@ -108,21 +124,31 @@ export default function HomeScreen() {
       <ThemedView style={styles.hero}>
         <Text style={styles.heroEmoji}>🔨</Text>
         <ThemedText type="title" style={styles.heroTitle}>
-          Borrow Tools from Neighbors
+          Borrow Tools from{'\n'}Your Neighbors
         </ThemedText>
-        <ThemedText style={styles.heroSubtitle}>
-          The hyperlocal marketplace where your community shares power tools, lawn equipment, and everything in between.
-        </ThemedText>
+        <Text style={styles.heroSubtitle}>
+          Access power tools, lawn equipment, and more from verified neighbors within walking distance.
+        </Text>
 
-        {/* Stats */}
+        {/* CTA Buttons */}
+        <View style={styles.ctaButtons}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleBrowseTools}>
+            <Text style={styles.primaryButtonText}>Browse Tools</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleJoinWaitlist}>
+            <Text style={styles.secondaryButtonText}>Get Started</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>$50B+</Text>
-            <Text style={styles.statLabel}>MARKET SIZE</Text>
+            <Text style={styles.statNumber}>23</Text>
+            <Text style={styles.statLabel}>TOOLS NEARBY</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>99%</Text>
-            <Text style={styles.statLabel}>TIME UNUSED</Text>
+            <Text style={styles.statNumber}>0.3mi</Text>
+            <Text style={styles.statLabel}>AVG DISTANCE</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNumber}>100%</Text>
@@ -131,113 +157,112 @@ export default function HomeScreen() {
         </View>
       </ThemedView>
 
-      {/* Tools Near You */}
+      {/* Featured Tools */}
       <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>🔍 Tools Near You</ThemedText>
-        
-        {tools.map(tool => (
-          <TouchableOpacity 
-            key={tool.id} 
-            style={styles.toolCard}
-            onPress={() => setSelectedTool(tool)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.toolHeader}>
-              <View style={styles.toolInfo}>
-                <Text style={styles.toolIcon}>{tool.icon}</Text>
-                <View style={styles.toolDetails}>
-                  <Text style={styles.toolName}>{tool.name}</Text>
-                  <Text style={styles.toolLocation}>📍 {tool.distance} miles • {tool.owner}</Text>
-                  <Text style={styles.toolRating}>{'⭐'.repeat(tool.rating)} ({tool.reviews})</Text>
-                </View>
-              </View>
-              <View style={styles.priceContainer}>
-                <Text style={styles.price}>${tool.price}</Text>
-                <Text style={styles.priceLabel}>/day</Text>
-              </View>
-            </View>
-            <View style={styles.availabilityContainer}>
-              {tool.available ? (
-                <View style={styles.availableBadge}>
-                  <Text style={styles.availableText}>Available</Text>
-                </View>
-              ) : (
-                <View style={styles.rentedBadge}>
-                  <Text style={styles.rentedText}>Rented</Text>
-                </View>
-              )}
-            </View>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            🔥 Available Now
+          </ThemedText>
+          <TouchableOpacity onPress={handleBrowseTools}>
+            <Text style={styles.seeAllText}>See all →</Text>
           </TouchableOpacity>
-        ))}
+        </View>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolsScroll}>
+          {tools.filter(t => t.available).map(tool => (
+            <TouchableOpacity 
+              key={tool.id} 
+              style={styles.toolCardHorizontal}
+              onPress={() => setSelectedTool(tool)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.toolIconLarge}>{tool.icon}</Text>
+              <Text style={styles.toolNameCompact}>{tool.name}</Text>
+              <View style={styles.toolPriceRow}>
+                <Text style={styles.priceCompact}>${tool.price}</Text>
+                <Text style={styles.priceLabelCompact}>/day</Text>
+              </View>
+              <Text style={styles.distanceCompact}>📍 {tool.distance}mi away</Text>
+              <View style={styles.availableBadgeSmall}>
+                <Text style={styles.availableTextSmall}>Available</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </ThemedView>
 
-      {/* Problem Section */}
-      <ThemedView style={styles.section}>
-        <Text style={styles.sectionTag}>🧩 THE PROBLEM</Text>
+      {/* How It Works */}
+      <ThemedView style={styles.howItWorks}>
+        <Text style={styles.sectionTag}>⚡ HOW IT WORKS</Text>
         <ThemedText type="title" style={styles.sectionHeading}>
-          Everyone Owns Tools.{'\n'}Nobody Uses Them.
+          Simple, Safe, Sustainable
         </ThemedText>
 
-        <View style={styles.problemGrid}>
-          <View style={styles.problemCard}>
-            <Text style={styles.problemIcon}>💸</Text>
-            <Text style={styles.problemTitle}>Wasted Money</Text>
-            <Text style={styles.problemText}>
-              Americans spend thousands on tools that collect dust in their garages.
-            </Text>
+        <View style={styles.steps}>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Find a Tool</Text>
+              <Text style={styles.stepText}>Search by location and see verified tools in your neighborhood</Text>
+            </View>
           </View>
 
-          <View style={styles.problemCard}>
-            <Text style={styles.problemIcon}>📦</Text>
-            <Text style={styles.problemTitle}>Wasted Space</Text>
-            <Text style={styles.problemText}>
-              Storage space is expensive. Why fill it with equipment you use once a year?
-            </Text>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Book Instantly</Text>
+              <Text style={styles.stepText}>Reserve by hour or day with automatic payment processing</Text>
+            </View>
           </View>
 
-          <View style={styles.problemCard}>
-            <Text style={styles.problemIcon}>🚗</Text>
-            <Text style={styles.problemTitle}>Inconvenient Rentals</Text>
-            <Text style={styles.problemText}>
-              Traditional rentals require driving across town and long lines.
-            </Text>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Pick Up & Use</Text>
+              <Text style={styles.stepText}>Coordinate pickup or use our contactless Neighborly Lockbox</Text>
+            </View>
           </View>
         </View>
       </ThemedView>
 
-      {/* Solution Section */}
-      <View style={styles.solutionSection}>
-        <Text style={styles.solutionTag}>💡 THE SOLUTION</Text>
-        <Text style={styles.solutionTitle}>Your Neighborhood{'\n'}is the New Hardware Store</Text>
+      {/* Value Props */}
+      <View style={styles.valueProps}>
+        <View style={styles.valueProp}>
+          <Text style={styles.valuePropIcon}>💸</Text>
+          <Text style={styles.valuePropTitle}>Save Money</Text>
+          <Text style={styles.valuePropText}>Why buy expensive tools you'll use once? Rent for 80% less.</Text>
+        </View>
 
-        <View style={styles.featureList}>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🔍</Text>
-            <Text style={styles.featureText}>Search by ZIP code to find tools within blocks</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>📅</Text>
-            <Text style={styles.featureText}>Book tools by hour or day with instant confirmation</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🔒</Text>
-            <Text style={styles.featureText}>Protected transactions with deposits and insurance</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>⭐</Text>
-            <Text style={styles.featureText}>Rate every rental to build community trust</Text>
-          </View>
+        <View style={styles.valueProp}>
+          <Text style={styles.valuePropIcon}>🤝</Text>
+          <Text style={styles.valuePropTitle}>Build Community</Text>
+          <Text style={styles.valuePropText}>Meet neighbors and strengthen local connections.</Text>
+        </View>
+
+        <View style={styles.valueProp}>
+          <Text style={styles.valuePropIcon}>🌱</Text>
+          <Text style={styles.valuePropTitle}>Go Green</Text>
+          <Text style={styles.valuePropText}>Reduce waste by sharing instead of buying.</Text>
         </View>
       </View>
 
-      {/* CTA */}
-      <ThemedView style={styles.ctaSection}>
-        <ThemedText type="title" style={styles.ctaTitle}>Join the Beta</ThemedText>
-        <Text style={styles.ctaText}>
-          Launching in Austin, Denver, and Portland. Get early access and earn credits!
+      {/* Final CTA */}
+      <ThemedView style={styles.finalCta}>
+        <Text style={styles.finalCtaEmoji}>🚀</Text>
+        <ThemedText type="title" style={styles.finalCtaTitle}>
+          Ready to Get Started?
+        </ThemedText>
+        <Text style={styles.finalCtaText}>
+          Join the beta in Austin, Denver, or Portland and get $20 in rental credits!
         </Text>
-        <TouchableOpacity style={styles.ctaButton}>
-          <Text style={styles.ctaButtonText}>Get Early Access →</Text>
+        <TouchableOpacity style={styles.finalCtaButton} onPress={handleJoinWaitlist}>
+          <Text style={styles.finalCtaButtonText}>Join Waitlist →</Text>
         </TouchableOpacity>
       </ThemedView>
 
@@ -250,7 +275,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setSelectedTool(null)}
@@ -266,7 +291,7 @@ export default function HomeScreen() {
 
                   <View style={styles.modalPriceCard}>
                     <View style={styles.modalPriceSection}>
-                      <Text style={styles.modalPriceLabel}>Price</Text>
+                      <Text style={styles.modalPriceLabel}>Daily Rate</Text>
                       <Text style={styles.modalPrice}>${selectedTool.price}<Text style={styles.modalPriceUnit}>/day</Text></Text>
                     </View>
                     <View style={styles.modalRatingSection}>
@@ -279,19 +304,25 @@ export default function HomeScreen() {
                     <View style={styles.ownerAvatar}>
                       <Text style={styles.ownerInitial}>{selectedTool.owner.charAt(0)}</Text>
                     </View>
-                    <View>
+                    <View style={styles.ownerInfo}>
                       <Text style={styles.ownerName}>{selectedTool.owner}</Text>
-                      <Text style={styles.ownerVerified}>Verified neighbor</Text>
+                      <Text style={styles.ownerVerified}>✓ Verified neighbor</Text>
                     </View>
+                    <TouchableOpacity 
+                      style={styles.messageButton}
+                      onPress={() => Alert.alert('Message', `Start a chat with ${selectedTool.owner}?`)}
+                    >
+                      <Text style={styles.messageButtonText}>💬</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.modalDescriptionCard}>
-                    <Text style={styles.modalSectionTitle}>Description</Text>
+                    <Text style={styles.modalSectionTitle}>About This Tool</Text>
                     <Text style={styles.modalDescription}>{selectedTool.description}</Text>
                   </View>
 
                   <View style={styles.modalProtectionCard}>
-                    <Text style={styles.modalSectionTitle}>Protection</Text>
+                    <Text style={styles.modalSectionTitle}>Your Protection</Text>
                     <View style={styles.protectionItem}>
                       <Text style={styles.protectionIcon}>🔒</Text>
                       <View>
@@ -306,9 +337,19 @@ export default function HomeScreen() {
                         <Text style={styles.protectionDetail}>ID & address confirmed</Text>
                       </View>
                     </View>
+                    <View style={styles.protectionItem}>
+                      <Text style={styles.protectionIcon}>💳</Text>
+                      <View>
+                        <Text style={styles.protectionTitle}>Secure Payment</Text>
+                        <Text style={styles.protectionDetail}>Deposit held in escrow</Text>
+                      </View>
+                    </View>
                   </View>
 
-                  <TouchableOpacity style={styles.rentButton}>
+                  <TouchableOpacity 
+                    style={styles.rentButton}
+                    onPress={() => handleRequestRental(selectedTool)}
+                  >
                     <Text style={styles.rentButtonText}>Request to Rent</Text>
                   </TouchableOpacity>
                 </>
@@ -317,10 +358,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>🏠 Neighborly — Building stronger communities</Text>
-      </View>
     </ScrollView>
   );
 }
@@ -334,56 +371,106 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 60,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#FFE8E3',
   },
   logo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
     color: '#FF6B55',
+    marginBottom: 2,
+  },
+  tagline: {
+    fontSize: 11,
+    color: '#6B6B6B',
+    fontWeight: '500',
   },
   joinButton: {
     backgroundColor: '#FF6B55',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 25,
+    shadowColor: '#FF6B55',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   joinButtonText: {
     color: '#FFF',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
   hero: {
     paddingHorizontal: 20,
     paddingVertical: 40,
+    alignItems: 'center',
   },
   heroEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
+    fontSize: 64,
+    marginBottom: 20,
   },
   heroTitle: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '800',
     marginBottom: 16,
-    lineHeight: 42,
+    lineHeight: 44,
+    textAlign: 'center',
   },
   heroSubtitle: {
-    fontSize: 18,
+    fontSize: 17,
     color: '#6B6B6B',
     marginBottom: 32,
-    lineHeight: 26,
+    lineHeight: 25,
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
+  ctaButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 40,
+  },
+  primaryButton: {
+    backgroundColor: '#FF6B55',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 30,
+    shadowColor: '#FF6B55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#FF6B55',
+  },
+  secondaryButtonText: {
+    color: '#FF6B55',
+    fontSize: 16,
+    fontWeight: '700',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 20,
+    width: '100%',
   },
   stat: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: '#FF6B55',
     marginBottom: 4,
@@ -392,95 +479,91 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#6B6B6B',
     fontWeight: '600',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   section: {
-    paddingHorizontal: 20,
-    paddingVertical: 32,
+    paddingVertical: 24,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  toolCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  toolHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  seeAllText: {
+    color: '#FF6B55',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  toolsScroll: {
+    paddingLeft: 20,
+  },
+  toolCardHorizontal: {
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 20,
+    marginRight: 16,
+    width: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  toolIconLarge: {
+    fontSize: 48,
     marginBottom: 12,
+    textAlign: 'center',
   },
-  toolInfo: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  toolIcon: {
-    fontSize: 40,
-    marginRight: 12,
-  },
-  toolDetails: {
-    flex: 1,
-  },
-  toolName: {
-    fontSize: 18,
+  toolNameCompact: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#2B2B2B',
-    marginBottom: 4,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  toolLocation: {
-    fontSize: 13,
-    color: '#6B6B6B',
-    marginBottom: 4,
+  toolPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'baseline',
+    marginBottom: 8,
   },
-  toolRating: {
-    fontSize: 14,
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  price: {
-    fontSize: 28,
+  priceCompact: {
+    fontSize: 24,
     fontWeight: '800',
     color: '#2D9F6B',
   },
-  priceLabel: {
+  priceLabelCompact: {
     fontSize: 12,
     color: '#6B6B6B',
+    marginLeft: 2,
   },
-  availabilityContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+  distanceCompact: {
+    fontSize: 12,
+    color: '#6B6B6B',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  availableBadge: {
+  availableBadgeSmall: {
     backgroundColor: '#E8F5E9',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
+    alignSelf: 'center',
   },
-  availableText: {
+  availableTextSmall: {
     color: '#2D9F6B',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
-  rentedBadge: {
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  rentedText: {
-    color: '#6B6B6B',
-    fontSize: 12,
-    fontWeight: '700',
+  howItWorks: {
+    paddingHorizontal: 20,
+    paddingVertical: 48,
   },
   sectionTag: {
     backgroundColor: '#F5E6D3',
@@ -489,7 +572,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     marginBottom: 16,
     letterSpacing: 1,
@@ -497,137 +580,132 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 32,
     fontWeight: '800',
-    marginBottom: 24,
+    marginBottom: 32,
     lineHeight: 38,
   },
-  problemGrid: {
+  steps: {
+    gap: 24,
+  },
+  step: {
+    flexDirection: 'row',
     gap: 16,
   },
-  problemCard: {
-    backgroundColor: '#FFF8F0',
+  stepNumber: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6B55',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  stepContent: {
+    flex: 1,
+    paddingTop: 4,
+  },
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2B2B2B',
+    marginBottom: 6,
+  },
+  stepText: {
+    fontSize: 15,
+    color: '#6B6B6B',
+    lineHeight: 22,
+  },
+  valueProps: {
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+    gap: 20,
+  },
+  valueProp: {
+    backgroundColor: '#FFF',
     padding: 24,
     borderRadius: 20,
-    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  problemIcon: {
+  valuePropIcon: {
     fontSize: 40,
     marginBottom: 12,
   },
-  problemTitle: {
+  valuePropTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#2B2B2B',
     marginBottom: 8,
   },
-  problemText: {
+  valuePropText: {
     fontSize: 15,
     color: '#6B6B6B',
     lineHeight: 22,
   },
-  solutionSection: {
-    backgroundColor: '#2D9F6B',
+  finalCta: {
     paddingHorizontal: 20,
     paddingVertical: 48,
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  solutionTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: '#FFF',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: '700',
+  finalCtaEmoji: {
+    fontSize: 48,
     marginBottom: 16,
-    letterSpacing: 1,
   },
-  solutionTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFF',
-    marginBottom: 32,
-    lineHeight: 38,
-  },
-  featureList: {
-    gap: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 16,
-    borderRadius: 16,
-    gap: 16,
-  },
-  featureIcon: {
-    fontSize: 28,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#FFF',
-    lineHeight: 24,
-  },
-  ctaSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 48,
-    alignItems: 'center',
-  },
-  ctaTitle: {
+  finalCtaTitle: {
     fontSize: 32,
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 16,
   },
-  ctaText: {
+  finalCtaText: {
     fontSize: 16,
     color: '#6B6B6B',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
     lineHeight: 24,
+    paddingHorizontal: 20,
   },
-  ctaButton: {
+  finalCtaButton: {
     backgroundColor: '#FF6B55',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingHorizontal: 48,
+    paddingVertical: 18,
     borderRadius: 30,
     shadowColor: '#FF6B55',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
   },
-  ctaButtonText: {
+  finalCtaButtonText: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
   },
-  footer: {
-    paddingVertical: 32,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#6B6B6B',
-    fontSize: 14,
-  },
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#FFF8F0',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     padding: 24,
-    maxHeight: '85%',
+    maxHeight: '90%',
   },
   closeButton: {
     alignSelf: 'flex-end',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -636,14 +714,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   closeButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#2B2B2B',
+    fontWeight: '600',
   },
   modalIcon: {
-    fontSize: 72,
+    fontSize: 80,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -667,6 +746,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -680,9 +760,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B6B6B',
     marginBottom: 4,
+    fontWeight: '600',
   },
   modalPrice: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '800',
     color: '#2D9F6B',
   },
@@ -692,10 +773,9 @@ const styles = StyleSheet.create({
   },
   modalRatingSection: {
     alignItems: 'flex-end',
-    justifyContent: 'center',
   },
   modalStars: {
-    fontSize: 18,
+    fontSize: 20,
     marginBottom: 4,
   },
   modalReviews: {
@@ -709,7 +789,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -717,26 +796,45 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   ownerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#FF6B55',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
   ownerInitial: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
     color: '#FFF',
   },
+  ownerInfo: {
+    flex: 1,
+  },
   ownerName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#2B2B2B',
+    marginBottom: 2,
   },
   ownerVerified: {
     fontSize: 13,
-    color: '#6B6B6B',
+    color: '#2D9F6B',
+    fontWeight: '600',
+  },
+  messageButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE8E3',
+  },
+  messageButtonText: {
+    fontSize: 20,
   },
   modalDescriptionCard: {
     backgroundColor: '#FFF',
@@ -758,7 +856,7 @@ const styles = StyleSheet.create({
   modalDescription: {
     fontSize: 15,
     color: '#6B6B6B',
-    lineHeight: 22,
+    lineHeight: 23,
   },
   modalProtectionCard: {
     backgroundColor: '#FFF',
@@ -774,17 +872,17 @@ const styles = StyleSheet.create({
   protectionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 14,
     marginBottom: 16,
   },
   protectionIcon: {
     fontSize: 28,
   },
   protectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#2B2B2B',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   protectionDetail: {
     fontSize: 13,
@@ -792,12 +890,12 @@ const styles = StyleSheet.create({
   },
   rentButton: {
     backgroundColor: '#FF6B55',
-    paddingVertical: 16,
-    borderRadius: 25,
+    paddingVertical: 18,
+    borderRadius: 28,
     alignItems: 'center',
     shadowColor: '#FF6B55',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
   },
