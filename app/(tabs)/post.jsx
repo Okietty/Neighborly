@@ -1,10 +1,10 @@
-import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { addDoc, collection, getDocs, getFirestore } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Formik } from 'formik';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import RNPickerSelect from 'react-native-picker-select';
 
 import { app } from '../../firebaseConfig';
 
@@ -104,12 +104,12 @@ export default function Post() {
               return errors
             }}
           >
-            {({handleChange,handleBlur,handleSubmit,setFieldValue,values,errors})=>(
+            {({handleChange,handleBlur,handleSubmit,setFieldValue,resetForm,values,errors})=>(
               <View>
                 
-                <TouchableOpacity onPress={pickImage}>
+                <TouchableOpacity onPress={pickImage} style={{marginTop:8,marginBottom:4}}>
                   {image?
-                  <Image source={{uri:image}} style={{width:120,height:120,borderRadius:15}}/>
+                  <Image source={{uri:image}} style={{width:140,height:140,borderRadius:15}}/>
                   :
                   <Image source={require('./../../assets/images/imageplaceholder.jpeg')}
                   style={{width:120,height:120,borderRadius:15}}
@@ -132,7 +132,7 @@ export default function Post() {
                   placeholderTextColor='#a8a8a8'
                   value={values?.desc}
                   multiline
-                  numberOfLines={5}
+                  //numberOfLines={5}
                   onChangeText={handleChange('desc')}
                 />
 
@@ -146,35 +146,52 @@ export default function Post() {
                 />
 
                 {/* Category List Dropdown */}
-                <View style={{borderWidth:3,borderColor: "#ccc",borderRadius:10,marginTop:15}}>
-                  <Picker
-                    style={{ width: '100%', height: 200, color:'white'}}
-                    selectedValue={values?.category}
-                    onValueChange={(itemValue) => setFieldValue("category", itemValue)}
-                  >
-                    <Picker.Item label="Select a category" value="" color='#000'/>
-                    {categoryList.map((item,index)=>(
-                      <Picker.Item key={index}
-                      label={item?.type} value={item?.type} color='#000'/>
-                    ))}
-                  </Picker>
-                </View>
+                <View style={style.dropdown}>
+                    <RNPickerSelect
+                      placeholder={{
+                        label: 'Select a Category',
+                        value: "",
+                        color: '#9EA0A4',
+                      }}
+                      
+                      items={categoryList.map(item => ({
+                        label: item.type,
+                        value: item.type,
+                        color: '#000',
+                      }))}
+                      value={values.category}
+                      onValueChange={(value) => setFieldValue('category', value)}
 
-                <View style={{borderWidth:3,borderColor: "#ccc",borderRadius:10,marginTop:15}}>
-                 
+                      style={{ 
+                        inputIOSContainer:{
+                          width: '100%', height: 40, borderRadius:10, color:'white', padding:10, zIndex:100
+                        }
+                      }}
+                    />
                 </View>
                 
-                <TouchableOpacity onPress={handleSubmit} 
-                  style={{padding:4, height: 50, backgroundColor:loading?'#ccc':'#147aee', borderRadius:20, marginTop:10}} disable={loading}>
+                <View style={{flexDirection: "row"}}>
+                  <TouchableOpacity onPress={()=>{resetForm(); setImage(null)}}
+                  style={[style.button, {backgroundColor:loading?'#ccc':'#E6E6E6'}]} disable={loading}>
                     {loading?
                       <ActivityIndicator color={'#fff'}/>
                       :
-                      <Text style={{color:'white', textAlign:'center', fontSize:16, margin:10}}>Submit</Text>
+                      <Text style={{color:'black', textAlign:'center', fontSize:16, margin:10}}>Cancel</Text>
+                    }
+                </TouchableOpacity>
+
+                  <TouchableOpacity onPress={handleSubmit} 
+                  style={[style.button, {backgroundColor:loading?'#ccc':'#2C2C2C'}]} disable={loading}>
+                    {loading?
+                      <ActivityIndicator color={'#fff'}/>
+                      :
+                      <Text style={{color:'white', textAlign:'center', fontSize:16, margin:10}}>Make</Text>
                     }
                 </TouchableOpacity>
                 {/* <Button onPress={handleSubmit} 
                 style={{marginBottom:7}}
                 title="submit" /> */}
+                </View>
               </View>
             )}
           </Formik>
@@ -191,39 +208,29 @@ const style = StyleSheet.create({
   input: {
     color:'black',
     borderBottomWidth:1,
-    borderRadius:10,
-    marginTop:10,
-    marginBottom:12,
+    borderRadius:2,
+    marginTop:8,
+    marginBottom:8,
     padding:12,
     paddingHorizontal:17,
     backgroundColor: '#dad8d8',
     borderColor: "#ccc",
-
   },
 
-  inputStyle: {
-    flex: 1,
-    color: 'black',
-    backgroundColor: '#dad8d8',
-    borderWidth: 1,
+  dropdown: {
+    borderWidth:2,
     borderColor: "#ccc",
-    borderBottomWidth: 1,
-    borderBottomColor: "#5f5d5d",
-    padding: 12,
-    borderRadius: 4,
-    marginBottom: 12
+    borderRadius:10,
+    marginTop:8
   },
-
+  
   button: {
-    flex:1, 
-    alignItems: "center", 
-    color: 'black',
-    backgroundColor: '#E6E6E6',
-    borderWidth: 1,
-    borderColor: "#E6E6E6",
-    padding: 12,
-    borderRadius: 4,
-    margin: 2,
+    flex:1,
+    padding:4, 
+    height: 50, 
+    borderRadius:10, 
+    margin:4,
+    marginTop:10,
     marginBottom: 12
   }
 })
