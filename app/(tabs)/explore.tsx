@@ -1,371 +1,484 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import React, { useRef, useState } from 'react';
+import {
+  Dimensions,
+  FlatList,
+  Keyboard,
+  ListRenderItem,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 
-interface Tool {
-  id: number;
-  name: string;
-  icon: string;
-  category: string;
+// Types
+interface ToolListing {
+  id: string;
+  title: string;
   price: number;
-  owner: string;
   distance: number;
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+  owner: string;
   rating: number;
-  reviews: number;
-  available: boolean;
 }
 
-const allTools: Tool[] = [
-  { id: 1, name: 'Power Drill', icon: '🔧', category: 'Power Tools', price: 8, owner: 'Sarah M.', distance: 0.3, rating: 5, reviews: 47, available: true },
-  { id: 2, name: 'Lawn Mower', icon: '🌿', category: 'Lawn & Garden', price: 15, owner: 'Mike R.', distance: 0.5, rating: 5, reviews: 32, available: true },
-  { id: 3, name: 'Extension Ladder', icon: '🪜', category: 'Ladders', price: 12, owner: 'David L.', distance: 0.7, rating: 5, reviews: 28, available: true },
-  { id: 4, name: 'Pressure Washer', icon: '💦', category: 'Cleaning', price: 20, owner: 'Jessica T.', distance: 0.4, rating: 5, reviews: 41, available: false },
-  { id: 5, name: 'Circular Saw', icon: '⚙️', category: 'Power Tools', price: 10, owner: 'Robert K.', distance: 0.6, rating: 4, reviews: 19, available: true },
-  { id: 6, name: 'Leaf Blower', icon: '🍂', category: 'Lawn & Garden', price: 8, owner: 'Amanda W.', distance: 0.3, rating: 5, reviews: 35, available: true },
-  { id: 7, name: 'Hedge Trimmer', icon: '✂️', category: 'Lawn & Garden', price: 10, owner: 'Tom H.', distance: 0.8, rating: 5, reviews: 22, available: true },
-  { id: 8, name: 'Angle Grinder', icon: '⚡', category: 'Power Tools', price: 12, owner: 'Lisa P.', distance: 0.9, rating: 4, reviews: 15, available: true },
-  { id: 9, name: 'Shop Vacuum', icon: '🌪️', category: 'Cleaning', price: 8, owner: 'Kevin M.', distance: 0.4, rating: 5, reviews: 38, available: true },
-  { id: 10, name: 'Nail Gun', icon: '🔫', category: 'Power Tools', price: 15, owner: 'Rachel S.', distance: 0.5, rating: 5, reviews: 29, available: false },
+// Dummy data for tool listings (DC area)
+const DUMMY_LISTINGS: ToolListing[] = [
+  {
+    id: '1',
+    title: 'DeWalt Power Drill',
+    price: 15,
+    distance: 0.3,
+    coordinate: { latitude: 38.9072, longitude: -77.0369 },
+    owner: 'Mike S.',
+    rating: 4.8,
+  },
+  {
+    id: '2',
+    title: 'Circular Saw',
+    price: 25,
+    distance: 0.7,
+    coordinate: { latitude: 38.91, longitude: -77.042 },
+    owner: 'Sarah K.',
+    rating: 4.5,
+  },
+  {
+    id: '3',
+    title: 'Pressure Washer',
+    price: 40,
+    distance: 1.2,
+    coordinate: { latitude: 38.915, longitude: -77.03 },
+    owner: 'John D.',
+    rating: 4.9,
+  },
+  {
+    id: '4',
+    title: 'Ladder - 12ft Extension',
+    price: 12,
+    distance: 0.5,
+    coordinate: { latitude: 38.902, longitude: -77.045 },
+    owner: 'Emily R.',
+    rating: 4.7,
+  },
+  {
+    id: '5',
+    title: 'Cordless Drill Set',
+    price: 18,
+    distance: 1.5,
+    coordinate: { latitude: 38.92, longitude: -77.025 },
+    owner: 'Chris M.',
+    rating: 4.6,
+  },
+  {
+    id: '6',
+    title: 'Table Saw',
+    price: 35,
+    distance: 2.0,
+    coordinate: { latitude: 38.895, longitude: -77.05 },
+    owner: 'David L.',
+    rating: 4.4,
+  },
 ];
 
-const categories = ['All', 'Power Tools', 'Lawn & Garden', 'Ladders', 'Cleaning'];
+const { width, height } = Dimensions.get('window');
 
-export default function ExploreScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+const INITIAL_REGION: Region = {
+  latitude: 38.9072,
+  longitude: -77.0369,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
 
-  const filteredTools = allTools.filter(tool => {
-    const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+const ToolSearchScreen: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredListings, setFilteredListings] = useState<ToolListing[]>(DUMMY_LISTINGS);
+  const [selectedListing, setSelectedListing] = useState<ToolListing | null>(null);
+  const [showResults, setShowResults] = useState<boolean>(false);
 
-  const handleToolPress = (tool: Tool) => {
-    if (tool.available) {
-      Alert.alert(
-        tool.name,
-        `Rent from ${tool.owner} for $${tool.price}/day?\n📍 ${tool.distance} miles away`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Request Rental', onPress: () => Alert.alert('Request Sent!', `${tool.owner} will respond within 24 hours.`) }
-        ]
-      );
+  const mapRef = useRef<MapView>(null);
+
+  const handleSearch = (text: string): void => {
+    setSearchQuery(text);
+
+    if (text.trim() === '') {
+      setFilteredListings(DUMMY_LISTINGS);
+      setShowResults(false);
     } else {
-      Alert.alert('Not Available', 'This tool is currently rented. Would you like to be notified when it becomes available?');
+      const filtered = DUMMY_LISTINGS.filter((listing) =>
+        listing.title.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredListings(filtered);
+      setShowResults(true);
     }
   };
 
-  return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Browse Tools
-        </ThemedText>
-        <Text style={styles.headerSubtitle}>
-          {filteredTools.length} tools in your area
-        </Text>
-      </ThemedView>
+  const handleSelectListing = (listing: ToolListing): void => {
+    setSelectedListing(listing);
+    setShowResults(false);
+    setSearchQuery(listing.title);
+    Keyboard.dismiss();
 
-      {/* Search Bar */}
-      <ThemedView style={styles.searchSection}>
+    mapRef.current?.animateToRegion(
+      {
+        ...listing.coordinate,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      500
+    );
+  };
+
+  const handleMarkerPress = (listing: ToolListing): void => {
+    setSelectedListing(listing);
+  };
+
+  const handleClearSearch = (): void => {
+    setSearchQuery('');
+    setFilteredListings(DUMMY_LISTINGS);
+    setSelectedListing(null);
+    setShowResults(false);
+
+    mapRef.current?.animateToRegion(INITIAL_REGION, 500);
+  };
+
+  const handleMapPress = (): void => {
+    setShowResults(false);
+    setSelectedListing(null);
+    Keyboard.dismiss();
+  };
+
+  const handleRentRequest = (): void => {
+    if (selectedListing) {
+      // TODO: Navigate to rental request flow
+      console.log('Requesting to rent:', selectedListing.title);
+    }
+  };
+
+  const renderSearchResult: ListRenderItem<ToolListing> = ({ item }) => (
+    <TouchableOpacity
+      style={styles.resultItem}
+      onPress={() => handleSelectListing(item)}
+    >
+      <View style={styles.resultInfo}>
+        <Text style={styles.resultTitle}>{item.title}</Text>
+        <Text style={styles.resultSubtitle}>
+          {item.distance} mi away • ${item.price}/day
+        </Text>
+      </View>
+      <Text style={styles.resultRating}>★ {item.rating}</Text>
+    </TouchableOpacity>
+  );
+
+  // Custom marker component
+  const PriceMarker: React.FC<{ price: number; selected: boolean }> = ({ price, selected }) => (
+    <View style={[styles.customMarker, selected && styles.selectedMarker]}>
+      <Text style={[styles.markerText, selected && styles.selectedMarkerText]}>
+        ${price}
+      </Text>
+      <View style={[styles.markerArrow, selected && styles.selectedMarkerArrow]} />
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Map */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        initialRegion={INITIAL_REGION}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        onPress={handleMapPress}
+        showsUserLocation
+        showsMyLocationButton={false}
+      >
+        {filteredListings.map((listing) => (
+          <Marker
+            key={listing.id}
+            coordinate={listing.coordinate}
+            onPress={() => handleMarkerPress(listing)}
+            tracksViewChanges={false}
+          >
+            <PriceMarker
+              price={listing.price}
+              selected={selectedListing?.id === listing.id}
+            />
+          </Marker>
+        ))}
+      </MapView>
+
+      {/* Search Bar Overlay */}
+      <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <IconSymbol name="magnifyingglass" size={20} color="#6B6B6B" />
+          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for drills, saws, mowers..."
+            placeholder="Search for tools..."
+            placeholderTextColor="#999"
             value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#9B9B9B"
+            onChangeText={handleSearch}
+            onFocus={() => setShowResults(searchQuery.length > 0)}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <IconSymbol name="xmark.circle.fill" size={20} color="#9B9B9B" />
+            <TouchableOpacity
+              onPress={handleClearSearch}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.clearButton}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
-      </ThemedView>
 
-      {/* Category Filter */}
-      <View style={styles.categories}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-          {categories.map(category => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryPill,
-                selectedCategory === category && styles.categoryPillActive
-              ]}
-              onPress={() => setSelectedCategory(category)}
-            >
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category && styles.categoryTextActive
-              ]}>
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Tools Grid */}
-      <ThemedView style={styles.toolsGrid}>
-        {filteredTools.length > 0 ? (
-          filteredTools.map(tool => (
-            <TouchableOpacity
-              key={tool.id}
-              style={styles.toolCard}
-              onPress={() => handleToolPress(tool)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.toolCardHeader}>
-                <Text style={styles.toolIcon}>{tool.icon}</Text>
-                {!tool.available && (
-                  <View style={styles.rentedBadge}>
-                    <Text style={styles.rentedText}>Rented</Text>
-                  </View>
-                )}
+        {/* Search Results Dropdown */}
+        {showResults && (
+          <View style={styles.resultsContainer}>
+            {filteredListings.length > 0 ? (
+              <FlatList
+                data={filteredListings}
+                renderItem={renderSearchResult}
+                keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
+                style={styles.resultsList}
+              />
+            ) : (
+              <View style={styles.noResults}>
+                <Text style={styles.noResultsText}>No tools found</Text>
               </View>
-              
-              <Text style={styles.toolName}>{tool.name}</Text>
-              <Text style={styles.toolCategory}>{tool.category}</Text>
-              
-              <View style={styles.toolFooter}>
-                <View style={styles.priceSection}>
-                  <Text style={styles.price}>${tool.price}</Text>
-                  <Text style={styles.priceUnit}>/day</Text>
-                </View>
-                <Text style={styles.distance}>📍 {tool.distance}mi</Text>
-              </View>
-
-              <View style={styles.ownerSection}>
-                <View style={styles.ownerAvatarSmall}>
-                  <Text style={styles.ownerInitialSmall}>{tool.owner.charAt(0)}</Text>
-                </View>
-                <View style={styles.ratingSection}>
-                  <Text style={styles.starIcon}>⭐</Text>
-                  <Text style={styles.ratingText}>{tool.rating}.0</Text>
-                  <Text style={styles.reviewCount}>({tool.reviews})</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔍</Text>
-            <Text style={styles.emptyTitle}>No tools found</Text>
-            <Text style={styles.emptyText}>
-              Try adjusting your search or filters
-            </Text>
+            )}
           </View>
         )}
-      </ThemedView>
+      </View>
 
-      {/* Bottom Spacing */}
-      <View style={{ height: 100 }} />
-    </ScrollView>
+      {/* Selected Listing Card */}
+      {selectedListing && !showResults && (
+        <View style={styles.listingCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{selectedListing.title}</Text>
+            <Text style={styles.cardRating}>★ {selectedListing.rating}</Text>
+          </View>
+          <Text style={styles.cardOwner}>Listed by {selectedListing.owner}</Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.cardPrice}>${selectedListing.price}/day</Text>
+            <Text style={styles.cardDistance}>
+              {selectedListing.distance} mi away
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.rentButton} onPress={handleRentRequest}>
+            <Text style={styles.rentButtonText}>Request to Rent</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+  map: {
+    width,
+    height,
   },
-  headerTitle: {
-    fontSize: 36,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: '#6B6B6B',
-  },
-  searchSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+
+  // Search bar
+  searchContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 16,
+    zIndex: 10,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    paddingVertical: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#2B2B2B',
+    color: '#333',
   },
-  categories: {
-    marginBottom: 24,
+  clearButton: {
+    fontSize: 18,
+    color: '#999',
+    padding: 4,
   },
-  categoriesScroll: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  categoryPill: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  categoryPillActive: {
-    backgroundColor: '#FF6B55',
-    borderColor: '#FF6B55',
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B6B6B',
-  },
-  categoryTextActive: {
-    color: '#FFF',
-  },
-  toolsGrid: {
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  toolCard: {
-    width: '47%',
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 16,
+
+  // Search results
+  resultsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 8,
+    maxHeight: 300,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  resultsList: {
+    borderRadius: 12,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  resultInfo: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  resultSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  resultRating: {
+    fontSize: 14,
+    color: '#f5a623',
+    fontWeight: '600',
+  },
+  noResults: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#666',
+  },
+
+  // Custom marker
+  customMarker: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 3,
   },
-  toolCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+  selectedMarker: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#2E6BB0',
   },
-  toolIcon: {
-    fontSize: 40,
-  },
-  rentedBadge: {
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  rentedText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9B9B9B',
-  },
-  toolName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2B2B2B',
-    marginBottom: 4,
-  },
-  toolCategory: {
-    fontSize: 12,
-    color: '#9B9B9B',
-    marginBottom: 12,
-  },
-  toolFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  priceSection: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  price: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#2D9F6B',
-  },
-  priceUnit: {
-    fontSize: 11,
-    color: '#9B9B9B',
-    marginLeft: 2,
-  },
-  distance: {
-    fontSize: 12,
-    color: '#6B6B6B',
-  },
-  ownerSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  ownerAvatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FF6B55',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownerInitialSmall: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  ratingSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  starIcon: {
+  markerText: {
     fontSize: 14,
-  },
-  ratingText: {
-    fontSize: 13,
     fontWeight: '700',
-    color: '#2B2B2B',
+    color: '#4A90E2',
   },
-  reviewCount: {
-    fontSize: 11,
-    color: '#9B9B9B',
+  selectedMarkerText: {
+    color: '#fff',
   },
-  emptyState: {
-    width: '100%',
+  markerArrow: {
+    position: 'absolute',
+    bottom: -8,
+    left: '50%',
+    marginLeft: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#4A90E2',
+  },
+  selectedMarkerArrow: {
+    borderTopColor: '#2E6BB0',
+  },
+
+  // Listing card
+  listingCard: {
+    position: 'absolute',
+    bottom: 30,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 60,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
+  cardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2B2B2B',
-    marginBottom: 8,
+    color: '#333',
+    flex: 1,
   },
-  emptyText: {
-    fontSize: 15,
-    color: '#6B6B6B',
-    textAlign: 'center',
+  cardRating: {
+    fontSize: 16,
+    color: '#f5a623',
+    fontWeight: '600',
+  },
+  cardOwner: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  cardPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4A90E2',
+  },
+  cardDistance: {
+    fontSize: 14,
+    color: '#666',
+  },
+  rentButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  rentButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
+
+export default ToolSearchScreen;

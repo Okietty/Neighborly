@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 
 interface Tool {
   id: number;
   name: string;
+  images: string[]
   icon: string;
   price: number;
   owner: string;
@@ -21,6 +22,7 @@ const tools: Tool[] = [
   {
     id: 1,
     name: 'Power Drill',
+    images: ["https://www.mrpowertools.com/data/upload/ueditor/20241015/670dc5b5af22b.jpg",],
     icon: '🔧',
     price: 8,
     owner: 'Sarah M.',
@@ -33,6 +35,7 @@ const tools: Tool[] = [
   {
     id: 2,
     name: 'Lawn Mower',
+    images: ["https://m.media-amazon.com/images/I/71PXLWTvP1L._AC_UF894,1000_QL80_.jpg"],
     icon: '🌿',
     price: 15,
     owner: 'Mike R.',
@@ -45,6 +48,7 @@ const tools: Tool[] = [
   {
     id: 3,
     name: 'Extension Ladder',
+    images: ["https://wernerco.widen.net/content/rwgbgledrq/jpeg/D6220-3_PI.jpeg?w=1200&h=1200&position=c&color=ffffffff&quality=100&u=qlpvmu"],
     icon: '🪜',
     price: 12,
     owner: 'David L.',
@@ -57,6 +61,7 @@ const tools: Tool[] = [
   {
     id: 4,
     name: 'Pressure Washer',
+    images: ["https://i5.walmartimages.com/seo/All-Power-Heavy-Duty-3200-PSI-2-6-GPM-Gas-Pressure-Washer-Power-Washer-for-Outdoor-Cleaning-APW5120_c36fa084-e734-4626-b124-f91097eb62c9_1.9e3d0a7af8ccc2238c044146eb0f72ea.jpeg"],
     icon: '💦',
     price: 20,
     owner: 'Jessica T.',
@@ -64,7 +69,7 @@ const tools: Tool[] = [
     rating: 5,
     reviews: 41,
     description: 'Gas-powered pressure washer. 3000 PSI. Includes multiple nozzles. Great for decks, driveways, and siding.',
-    available: false
+    available: true
   },
 ];
 
@@ -86,22 +91,6 @@ export default function HomeScreen() {
     );
   };
 
-  const handleRequestRental = (tool: Tool) => {
-    Alert.alert(
-      `Request ${tool.name}?`,
-      `This will send a rental request to ${tool.owner} for $${tool.price}/day.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Send Request',
-          onPress: () => {
-            setSelectedTool(null);
-            Alert.alert('Request Sent! ✓', `${tool.owner} will respond within 24 hours. Check your messages for updates.`);
-          }
-        }
-      ]
-    );
-  };
 
   const handleBrowseTools = () => {
     router.push('/explore');
@@ -173,16 +162,27 @@ export default function HomeScreen() {
             <TouchableOpacity 
               key={tool.id} 
               style={styles.toolCardHorizontal}
-              onPress={() => setSelectedTool(tool)}
+              onPress={() => router.push({
+                pathname: '/tool-details',
+                params: {
+                  tool: encodeURIComponent(JSON.stringify(tool))
+                }
+              })}
               activeOpacity={0.8}
             >
-              <Text style={styles.toolIconLarge}>{tool.icon}</Text>
+              {tool.images.length > 0 ? (<Image
+                      source={{ uri: tool.images[0]}}
+                      style={styles.toolImage}
+                    />  
+                  ) : (
+                    <Text>no images</Text>
+                  )}
               <Text style={styles.toolNameCompact}>{tool.name}</Text>
               <View style={styles.toolPriceRow}>
                 <Text style={styles.priceCompact}>${tool.price}</Text>
                 <Text style={styles.priceLabelCompact}>/day</Text>
               </View>
-              <Text style={styles.distanceCompact}>📍 {tool.distance}mi away</Text>
+              <Text style={styles.distanceCompact}>📍 {tool.distance} mi away</Text>
               <View style={styles.availableBadgeSmall}>
                 <Text style={styles.availableTextSmall}>Available</Text>
               </View>
@@ -266,98 +266,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ThemedView>
 
-      {/* Tool Detail Modal */}
-      <Modal
-        visible={selectedTool !== null}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSelectedTool(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setSelectedTool(null)}
-              >
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-
-              {selectedTool && (
-                <>
-                  <Text style={styles.modalIcon}>{selectedTool.icon}</Text>
-                  <Text style={styles.modalTitle}>{selectedTool.name}</Text>
-                  <Text style={styles.modalLocation}>📍 {selectedTool.distance} miles away</Text>
-
-                  <View style={styles.modalPriceCard}>
-                    <View style={styles.modalPriceSection}>
-                      <Text style={styles.modalPriceLabel}>Daily Rate</Text>
-                      <Text style={styles.modalPrice}>${selectedTool.price}<Text style={styles.modalPriceUnit}>/day</Text></Text>
-                    </View>
-                    <View style={styles.modalRatingSection}>
-                      <Text style={styles.modalStars}>{'⭐'.repeat(selectedTool.rating)}</Text>
-                      <Text style={styles.modalReviews}>{selectedTool.reviews} reviews</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.modalOwnerCard}>
-                    <View style={styles.ownerAvatar}>
-                      <Text style={styles.ownerInitial}>{selectedTool.owner.charAt(0)}</Text>
-                    </View>
-                    <View style={styles.ownerInfo}>
-                      <Text style={styles.ownerName}>{selectedTool.owner}</Text>
-                      <Text style={styles.ownerVerified}>✓ Verified neighbor</Text>
-                    </View>
-                    <TouchableOpacity 
-                      style={styles.messageButton}
-                      onPress={() => Alert.alert('Message', `Start a chat with ${selectedTool.owner}?`)}
-                    >
-                      <Text style={styles.messageButtonText}>💬</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.modalDescriptionCard}>
-                    <Text style={styles.modalSectionTitle}>About This Tool</Text>
-                    <Text style={styles.modalDescription}>{selectedTool.description}</Text>
-                  </View>
-
-                  <View style={styles.modalProtectionCard}>
-                    <Text style={styles.modalSectionTitle}>Your Protection</Text>
-                    <View style={styles.protectionItem}>
-                      <Text style={styles.protectionIcon}>🔒</Text>
-                      <View>
-                        <Text style={styles.protectionTitle}>Damage Protection</Text>
-                        <Text style={styles.protectionDetail}>Covered up to $500</Text>
-                      </View>
-                    </View>
-                    <View style={styles.protectionItem}>
-                      <Text style={styles.protectionIcon}>✓</Text>
-                      <View>
-                        <Text style={styles.protectionTitle}>Verified Owner</Text>
-                        <Text style={styles.protectionDetail}>ID & address confirmed</Text>
-                      </View>
-                    </View>
-                    <View style={styles.protectionItem}>
-                      <Text style={styles.protectionIcon}>💳</Text>
-                      <View>
-                        <Text style={styles.protectionTitle}>Secure Payment</Text>
-                        <Text style={styles.protectionDetail}>Deposit held in escrow</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.rentButton}
-                    onPress={() => handleRequestRental(selectedTool)}
-                  >
-                    <Text style={styles.rentButtonText}>Request to Rent</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -737,7 +645,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B6B6B',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   modalPriceCard: {
     backgroundColor: '#FFF',
@@ -772,7 +680,7 @@ const styles = StyleSheet.create({
     color: '#6B6B6B',
   },
   modalRatingSection: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   modalStars: {
     fontSize: 20,
@@ -869,6 +777,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  modalImage: {
+    height: 140,
+    width: 140,
+    marginBottom: 12,
+    marginTop: 12,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
+  toolImage: {
+    height: 100,
+    width: 100,
+    marginBottom: 12,
+    marginTop: 12,
+    borderRadius: 12,
+    alignSelf: 'center',
+  },
   protectionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -891,6 +815,20 @@ const styles = StyleSheet.create({
   rentButton: {
     backgroundColor: '#FF6B55',
     paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 28,
+    alignItems: 'center',
+    shadowColor: '#FF6B55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+
+  contactButton: {
+    backgroundColor: '#FF6B55',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     borderRadius: 28,
     alignItems: 'center',
     shadowColor: '#FF6B55',
@@ -904,4 +842,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+
+  contactButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  
 });
