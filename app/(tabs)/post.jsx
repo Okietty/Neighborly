@@ -1,11 +1,11 @@
+import RNDateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { addDoc, collection, getDocs, getFirestore } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Formik } from 'formik';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import RNPickerSelect from 'react-native-picker-select';
-
 import { app } from '../../firebaseConfig';
 
 export default function Post() {
@@ -14,6 +14,10 @@ export default function Post() {
   const [image, setImage] = useState(null);
   const storage = getStorage();
   const [loading,setLoading]=useState(false);
+  // Date and Time variables
+  const [date, setDate] = useState(new Date());
+  const [show, setShow] = useState(false);
+  const [text, setText] = useState('Empty');
 
   useEffect(()=>{
       getCategoryList();
@@ -57,6 +61,18 @@ export default function Post() {
     }
   };
 
+  const onChangeDate = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+     setShow(Platform.IOS === 'ios');
+     setDate(selectedDate);
+
+    let tempDate = new Date(currentDate);
+    let fDate = (tempDate.getMonth() + 1) + '/' + tempDate.getDate() + '/' + tempDate.getFullYear();
+    let fTime = 'Hours: ' + tempDate.getHours() + ' | Minutes: ' + tempDate.getMinutes();
+
+    console.log(fDate + ' (' + fTime + ')')
+  }
+
   const onSubmitMethod=async(value)=>{
     //value.image=image;
     //console.log(value)
@@ -79,7 +95,7 @@ export default function Post() {
         if(docRef.id){
           setLoading(false);
           //console.log("Document Added!!")
-          Alert.alert('Success!!!', 'Post added Succesfully.');
+          Alert.alert('Success!!', 'Post added Succesfully.');
         }
       })
     });
@@ -87,7 +103,7 @@ export default function Post() {
 
   return (
       <View style={{ flex: 1, justifyContent:'center', backgroundColor: "white", padding:10}}>
-          <Text style={{ textAlign: "center", fontSize: 24, fontWeight: "bold", marginBottom: 40 }}>
+          <Text style={{ textAlign: "center", fontSize: 24, fontWeight: "bold", marginTop:40, marginBottom: 40 }}>
             Post a New Listing
           </Text>
 
@@ -112,7 +128,7 @@ export default function Post() {
                   <Image source={{uri:image}} style={{width:140,height:140,borderRadius:15}}/>
                   :
                   <Image source={require('./../../assets/images/imageplaceholder.jpeg')}
-                  style={{width:120,height:120,borderRadius:15}}
+                  style={{width:140,height:140,borderRadius:15}}
                   />
                   }
                   
@@ -169,9 +185,32 @@ export default function Post() {
                       }}
                     />
                 </View>
+
+                <View style={style.date}>
+                  <Text style={{color: '#9EA0A4', marginTop:4, marginBottom:8, marginLeft:10}}>
+                    CHOOSE LISTING DURATION
+                  </Text>
+                  <View style={{flexDirection:'row'}}>
+                    <RNDateTimePicker 
+                      style={{marginRight:8}} 
+                      value={date} 
+                      mode='date' 
+                      //display='compact'
+                      onChange={onChangeDate} 
+                    />
+                    
+                    <RNDateTimePicker 
+                      style={{marginLeft:8}} 
+                      value={date} 
+                      mode='time' 
+                      //display='compact'
+                      onChange={onChangeDate} 
+                    /> 
+                </View>
+                </View>
                 
                 <View style={{flexDirection: "row"}}>
-                  <TouchableOpacity onPress={()=>{resetForm(); setImage(null)}}
+                  <TouchableOpacity onPress={()=>{resetForm(); setImage(null); setDate(new Date)}}
                   style={[style.button, {backgroundColor:loading?'#ccc':'#E6E6E6'}]} disable={loading}>
                     {loading?
                       <ActivityIndicator color={'#fff'}/>
@@ -185,7 +224,7 @@ export default function Post() {
                     {loading?
                       <ActivityIndicator color={'#fff'}/>
                       :
-                      <Text style={{color:'white', textAlign:'center', fontSize:16, margin:10}}>Make</Text>
+                      <Text style={{color:'white', textAlign:'center', fontSize:16, margin:10}}>Post</Text>
                     }
                 </TouchableOpacity>
                 {/* <Button onPress={handleSubmit} 
@@ -221,7 +260,8 @@ const style = StyleSheet.create({
     borderWidth:2,
     borderColor: "#ccc",
     borderRadius:10,
-    marginTop:8
+    marginTop:8,
+    marginBottom:8
   },
   
   button: {
@@ -232,5 +272,17 @@ const style = StyleSheet.create({
     margin:4,
     marginTop:10,
     marginBottom: 12
+  },
+
+  date: {
+    color:'black',
+    borderBottomWidth:1,
+    borderRadius:2,
+    marginTop:8,
+    marginBottom:8,
+    padding:12,
+    paddingHorizontal:17,
+    backgroundColor: '#dad8d8',
+    borderColor: "#ccc",
   }
 })
