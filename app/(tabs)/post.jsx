@@ -27,6 +27,7 @@ export default function Post() {
   const [loading, setLoading] = useState(false);
   // Date and Time variables
   const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
   const [show, setShow] = useState(false);
   const [text, setText] = useState("Empty");
 
@@ -76,32 +77,43 @@ export default function Post() {
     }
   };
 
-  const onChangeDateTime = (event, selectedDateTime, setFieldValue) => {
+  const onChangeDate = (event, selectedDate, setFieldValue) => {
     if (event.type === "dismissed") {
       return;
     }
 
-    const currentDateTime = selectedDateTime || date;
+    const currentDate = selectedDate || date;
     setShow(Platform.IOS === "ios");
-    setDate(selectedDateTime);
+    setDate(selectedDate);
 
-    let tempDateTime = new Date(currentDateTime);
+    let tempDate = new Date(currentDate);
     let fDate =
-      tempDateTime.getMonth() +
+      tempDate.getMonth() +
       1 +
       "/" +
-      tempDateTime.getDate() +
+      tempDate.getDate() +
       "/" +
-      tempDateTime.getFullYear();
+      tempDate.getFullYear();
 
+    setFieldValue("date", fDate);
+    console.log(fDate);
+  };
+
+  const onChangeTime = (event, selectedTime, setFieldValue) => {
+    if (event.type === "dismissed") {
+      return;
+    }
+
+    const currentTime = selectedTime || time;
+    setShow(Platform.IOS === "ios");
+    setTime(selectedTime);
+
+    let tempTime = new Date(currentTime);
     let fTime =
-      "Hours: " +
-      tempDateTime.getHours() +
-      " | Minutes: " +
-      tempDateTime.getMinutes();
+      "Hours: " + tempTime.getHours() + " | Minutes: " + tempTime.getMinutes();
 
-    setFieldValue("duration", selectedDateTime);
-    console.log(fDate + " (" + fTime + ")");
+    setFieldValue("time", fTime);
+    console.log(" (" + fTime + ")");
   };
 
   const onSubmitMethod = async (value) => {
@@ -167,12 +179,13 @@ export default function Post() {
             address: "",
             price: "",
             image: "",
-            duration: null,
+            date: "",
+            time: "",
           }}
           onSubmit={(value) => onSubmitMethod(value)}
           validate={(values) => {
             const errors = {};
-            if (!values.label && !values.image) {
+            if (!values.label) {
               console.log("Label not Present");
               errors.name = "Label Must be there";
             }
@@ -287,7 +300,7 @@ export default function Post() {
                     mode="date"
                     //display='compact'
                     onChange={(event, date) =>
-                      onChangeDateTime(event, date, setFieldValue)
+                      onChangeDate(event, date, setFieldValue)
                     }
 
                     // onChange={(value) => {
@@ -297,11 +310,11 @@ export default function Post() {
 
                   <RNDateTimePicker
                     style={{ marginLeft: 8 }}
-                    value={date}
+                    value={time}
                     mode="time"
                     //display='compact'
-                    onChange={(event, date) =>
-                      onChangeDateTime(event, date, setFieldValue)
+                    onChange={(event, time) =>
+                      onChangeTime(event, time, setFieldValue)
                     }
                     // onChange={(value) => {
                     //   (this.onChangeDate(), this.setFieldValue("time", value));
