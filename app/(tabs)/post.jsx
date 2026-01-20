@@ -179,8 +179,6 @@ export default function Post() {
             address: "",
             price: "",
             image: "",
-            date: "",
-            time: "",
           }}
           onSubmit={(value) => onSubmitMethod(value)}
           validate={(values) => {
