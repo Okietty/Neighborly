@@ -267,17 +267,13 @@ export default function Post() {
                   onPress={(data, details = null) => {
                     const address = details.formatted_address;
                     setAddress(address);
+                    console.log(address);
 
                     const { lat, lng } = details.geometry.location;
-
-                    console.log("Latitude:", lat);
-                    console.log("Longitude:", lng);
-
-                    // Example: save to state or Formik
                     setLatitude(lat);
                     setLongitude(lng);
-
-                    console.log(address);
+                    console.log("Latitude:", lat);
+                    console.log("Longitude:", lng);
 
                     setFieldValue("address", address);
                     setFieldValue("latitude", lat);
@@ -302,6 +298,8 @@ export default function Post() {
                       backgroundColor: "white",
                       borderWidth: 1,
                       borderColor: "#ccc",
+                      position: "absolute",
+                      bottom: 60,
                       zIndex: 10,
                       elevation: 10, // Android
                     },
