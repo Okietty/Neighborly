@@ -12,7 +12,7 @@ const firebaseConfig = {
   storageBucket: "neighborly-e8fe2.firebasestorage.app",
   messagingSenderId: "599097805132",
   appId: "1:599097805132:web:7df708452957a29155e7e9",
-  measurementId: "G-VBQTWYCWD9"
+  measurementId: "G-VBQTWYCWD9",
 };
 
 // Initialize Firebase
