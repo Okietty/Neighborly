@@ -8,16 +8,19 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import RNPickerSelect from "react-native-picker-select";
 import { app } from "../../firebaseConfig";
+
+import { GOOGLE_MAPS_API_KEY } from "@env";
 
 export default function Post() {
   const db = getFirestore(app);
@@ -25,6 +28,9 @@ export default function Post() {
   const [image, setImage] = useState(null);
   const storage = getStorage();
   const [loading, setLoading] = useState(false);
+  const [Address, setAddress] = useState("");
+  const [lat, setLatitude] = useState("");
+  const [lng, setLongitude] = useState("");
   // Date and Time variables
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(new Date());
@@ -147,7 +153,7 @@ export default function Post() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: "white" }}
       howsVerticalScrollIndicator={false}
     >
@@ -177,8 +183,12 @@ export default function Post() {
             desc: "",
             category: "",
             address: "",
+            latitude: "",
+            longitude: "",
             price: "",
             image: "",
+            date: "",
+            time: "",
           }}
           onSubmit={(value) => onSubmitMethod(value)}
           validate={(values) => {
@@ -244,13 +254,60 @@ export default function Post() {
                 onChangeText={handleChange("price")}
               />
 
-              <TextInput
-                style={style.input}
-                placeholder="Address"
-                placeholderTextColor="#a8a8a8"
-                value={values?.address}
-                onChangeText={handleChange("address")}
-              />
+              <View style={{ padding: 0, marginTop: 4, marginBottom: 4 }}>
+                <GooglePlacesAutocomplete
+                  placeholder="Search Address"
+                  placeholderTextColor="#000000"
+                  fetchDetails={true}
+                  textInputProps={{
+                    value: Address, // controlled input
+                    onChangeText: setAddress, // updates state
+                    placeholderTextColor: "#888",
+                  }}
+                  onPress={(data, details = null) => {
+                    const address = details.formatted_address;
+                    setAddress(address);
+
+                    const { lat, lng } = details.geometry.location;
+
+                    console.log("Latitude:", lat);
+                    console.log("Longitude:", lng);
+
+                    // Example: save to state or Formik
+                    setLatitude(lat);
+                    setLongitude(lng);
+
+                    console.log(address);
+
+                    setFieldValue("address", address);
+                    setFieldValue("latitude", lat);
+                    setFieldValue("longitude", lng);
+                  }}
+                  query={{
+                    key: GOOGLE_MAPS_API_KEY,
+                    language: "en",
+                  }}
+                  styles={{
+                    container: {
+                      flex: 0,
+                    },
+                    textInput: {
+                      height: 48,
+                      borderColor: "#ccc",
+                      borderWidth: 2,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                    },
+                    listView: {
+                      backgroundColor: "white",
+                      borderWidth: 1,
+                      borderColor: "#ccc",
+                      zIndex: 10,
+                      elevation: 10, // Android
+                    },
+                  }}
+                />
+              </View>
 
               {/* Category List Dropdown */}
               <View style={style.dropdown}>
@@ -327,6 +384,7 @@ export default function Post() {
                     resetForm();
                     setImage(null);
                     setDate(new Date());
+                    setAddress("");
                   }}
                   style={[
                     style.button,
@@ -381,7 +439,7 @@ export default function Post() {
           )}
         </Formik>
       </View>
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -393,7 +451,7 @@ const style = StyleSheet.create({
 
   input: {
     color: "black",
-    borderBottomWidth: 1,
+    borderBottomWidth: 4,
     borderRadius: 2,
     marginTop: 8,
     marginBottom: 8,
@@ -404,9 +462,11 @@ const style = StyleSheet.create({
   },
 
   dropdown: {
+    height: 48,
     borderWidth: 2,
     borderColor: "#ccc",
     borderRadius: 10,
+    paddingTop: 2,
     marginTop: 8,
     marginBottom: 8,
   },
